@@ -10,13 +10,7 @@ import (
 	"github.com/scottEAdams1/BlogAggregator2/internal/database"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
-	username := s.cfgPointer.CurrentUserName
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return err
-	}
-
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arg) != 2 {
 		return errors.New("missing args")
 	}
@@ -36,7 +30,19 @@ func handlerAddFeed(s *state, cmd command) error {
 		return err
 	}
 
-	fmt.Println(feed)
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	printFeed(feed, user)
+	printFeedFollow(feedFollow.UserName, feedFollow.FeedName)
 	return nil
 }
 
@@ -56,10 +62,17 @@ func handlerFeed(s *state, cmd command) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(feed.Name)
-		fmt.Println(feed.Url)
-		fmt.Println(user.Name)
+		printFeed(feed, user)
 	}
 
 	return nil
+}
+
+func printFeed(feed database.Feed, user database.User) {
+	fmt.Printf("* ID:            %s\n", feed.ID)
+	fmt.Printf("* Created:       %v\n", feed.CreatedAt)
+	fmt.Printf("* Updated:       %v\n", feed.UpdatedAt)
+	fmt.Printf("* Name:          %s\n", feed.Name)
+	fmt.Printf("* URL:           %s\n", feed.Url)
+	fmt.Printf("* User:          %s\n", user.Name)
 }
